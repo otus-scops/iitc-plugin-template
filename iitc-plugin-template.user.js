@@ -85,8 +85,12 @@ var wrapper = function(plugin_info) {
         let html = `
             <table>
                 <tr>
-                    <th><label for="virusImmunityTime">Token：</label></th>
-                    <td><input type="text" id="[設定項目名]" size="26"></td>
+                    <th>text入力：</th>
+                    <td><input type="text" id="[texxInputId]" size="26"></td>
+                </tr>
+                <tr>
+                    <th>チェックボックス：</th>
+                    <td><input type="checkbox" id="[checkboxId]"><label for="[checkboxId]">check</label></td>
                 </tr>
             </table>
         `;
@@ -98,11 +102,13 @@ var wrapper = function(plugin_info) {
             width: 500,
             focusCallback: function() {
                 // ダイアログ表示時に規定値を設定
-                $('#[設定項目名]').val(OptionData.[設定項目名]);
+                document.getElementById('[texxInputId]').value = OptionData.[texxInputId];
+                document.getElementById('[checkboxId]').checked = OptionData.[checkboxId];
             },
              buttons: {
                  'OK' : async function() {
-                     OptionData.[設定項目名] = $('#[設定項目名]').val();
+                     OptionData.[texxInputId] = document.getElementById('[texxInputId]').value;
+                     OptionData.[checkboxId] = document.getElementById('[checkboxId]').checked;
 
                      self.saveOption();
                      
@@ -166,7 +172,10 @@ var wrapper = function(plugin_info) {
         let cssData = `
 /* CSS */
         `;
-        $('<style>').prop('type', 'text/css').html(cssData).appendTo('head');
+        let styleTag = document.createElement('style');
+        styleTag.setAttribute('type', 'text/css')
+        styleTag.innerText = cssData;
+        document.getElementsByTagName('head')[0].insertAdjacentElement('beforeend', styleTag);
         
         // 初期設定
         self.init() 
