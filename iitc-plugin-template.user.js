@@ -59,11 +59,11 @@ var wrapper = function(plugin_info) {
         // postMessage({});
         
         // 本体からpostされたメッセージの処理
-        self.addEventListener('message', function(e){\
-        }, false);
+        // self.addEventListener('message', function(e){ }, false);
     `;
 
-
+	// エンドポイントから起動される初期処理用
+	// セットアップ以外の処理で、設定変更時等に再度コールされる想定
     self.init = function(){
 
     };
@@ -147,11 +147,11 @@ var wrapper = function(plugin_info) {
         
         // EventListener
         // https://iitc-ce.github.io/ingress-intel-total-conversion/module-hooks.html
-        //addHook('publicChatDataAvailable',self.listnerFunction);
+        // addHook('publicChatDataAvailable',self.listnerFunction);
 
         // カスタムレイヤーの追加
-        //self.myLayerGroup = new L.LayerGroup();
-        //window.addLayerGroup('[レイヤー名]', self.myLayerGroup, true);
+        // self.myLayerGroup = new L.LayerGroup();
+        // window.addLayerGroup('[レイヤー名]', self.myLayerGroup, true);
         // レイヤーへのアイコン追加例
         // 詳細はLeafletのドキュメント参照
         // https://leafletjs.com/reference.html
@@ -166,7 +166,7 @@ var wrapper = function(plugin_info) {
         */
 
         /* ツールボックスの項目追加 */
-        //$('#toolbox').append('<a onclick="javascript:window.plugin.[myPluginName].settingDialog();">設定</a>');
+        // $('#toolbox').append('<a onclick="javascript:window.plugin.[myPluginName].settingDialog();">設定</a>');
 
 
         let cssData = `
