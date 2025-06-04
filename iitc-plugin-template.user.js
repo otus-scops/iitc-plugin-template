@@ -39,6 +39,7 @@ var wrapper = function(plugin_info) {
     
     
     /* プラグイン内でグローバルに用いる定数や変数の定義 */
+    const STORAGE_KEY = '[myPluginName]-option';
     // const myGlobalConst = 'const';
     // let myGlobalVariable = null;
     
