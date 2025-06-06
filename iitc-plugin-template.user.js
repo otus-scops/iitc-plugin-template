@@ -69,6 +69,42 @@ var wrapper = function(plugin_info) {
 
     };
 
+    // 設定のエクスポート
+    self.exportOption = function() {
+        let stream = localStorage.getItem(STORAGE_KEY);
+        if (stream === null) {
+            console.warn('No settings found to export.');
+            return;
+        }
+        let blob = new Blob([stream], { type: 'application/json' });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url;
+        a.download = STORAGE_KEY + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    // 設定のインポート
+    self.importOption = function(file) {
+        if (!file || !file.name.endsWith('.json')) {
+            console.warn('Invalid file for import.');
+            return;
+        }
+        let reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                let data = JSON.parse(event.target.result);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                self.loadOption(); // Load the imported settings
+                console.log('Settings imported successfully.');
+            } catch (e) {
+                console.error('Failed to parse imported settings:', e);
+            }
+        };
+        reader.readAsText(file);
+    };
+
     // 設定の読み込み
     self.loadOption = function(){
         let stream = localStorage.getItem(STORAGE_KEY);
@@ -98,25 +134,56 @@ var wrapper = function(plugin_info) {
 
         dialog({
             html: html,
-            id: 'myPluginOptions',
-            title: '設定ダイアログ',
+            id: '[myPluginName]-Options',
+            title: '[myPluginName] 設定',
             width: 500,
             focusCallback: function() {
                 // ダイアログ表示時に規定値を設定
                 document.getElementById('[texxInputId]').value = OptionData.[texxInputId];
                 document.getElementById('[checkboxId]').checked = OptionData.[checkboxId];
             },
-             buttons: {
-                 'OK' : async function() {
-                     OptionData.[texxInputId] = document.getElementById('[texxInputId]').value;
-                     OptionData.[checkboxId] = document.getElementById('[checkboxId]').checked;
+            buttons: [
+                {
+                    text: 'Import',
+                    class: '[myPluginName]-import-button',
+                    click: function() {
+                        let dlg = this;
+                        let input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = '.json';
+                        input.onchange = function(event) {
+                            let file = event.target.files[0];
+                            self.importOption(file);
+                            $(dlg).dialog('close');
+                        };
+                        input.click();
+                    }
+                },
+                {
+                    text: 'Export',
+                    class: '[myPluginName]-export-button',
+                    click: function() {
+                        self.exportOption();
+                    }
+                },
+                {
+                    text: 'OK',
+                    class: '[myPluginName]-ok-button',
+                    click: function() {
+                        OptionData.[texxInputId] = document.getElementById('[texxInputId]').value;
+                        OptionData.[checkboxId] = document.getElementById('[checkboxId]').checked;
 
-                     self.saveOption();
-                     
-                     $(this).dialog('close');
-                 },
-                 'Cancel' : function() { $(this).dialog('close'); }
-             },
+                        self.saveOption();
+                        
+                        $(this).dialog('close');
+                    }
+                },
+                {
+                    text: 'Cancel',
+                    class: '[myPluginName]-cancel-button',
+                    click: function() { $(this).dialog('close'); }
+                }
+            ],
         });
     };
     
@@ -151,7 +218,7 @@ var wrapper = function(plugin_info) {
         // addHook('publicChatDataAvailable',self.listnerFunction);
 
         // カスタムレイヤーの追加
-        // self.myLayerGroup = new L.LayerGroup();
+        // self.myLayerGroup = new L.FeatureGroup();
         // window.addLayerGroup('[レイヤー名]', self.myLayerGroup, true);
         // レイヤーへのアイコン追加例
         // 詳細はLeafletのドキュメント参照
@@ -172,6 +239,22 @@ var wrapper = function(plugin_info) {
 
         let cssData = `
 /* CSS */
+/* override */
+@media (min-width: 1000px) {
+    .ui-dialog {
+        max-width: 900px;
+    }
+}
+@media (min-width: 1600px) {
+    .ui-dialog {
+        max-width: 1200px;
+    }
+}
+
+/* plugin specific */
+.[myPluginName]-export-button{
+    margin-right: 10px;
+}
         `;
         let styleTag = document.createElement('style');
         styleTag.setAttribute('type', 'text/css')
