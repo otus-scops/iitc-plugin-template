@@ -73,7 +73,6 @@ var wrapper = function(plugin_info) {
     self.exportOption = function() {
         let stream = localStorage.getItem(STORAGE_KEY);
         if (stream === null) {
-            console.warn('No settings found to export.');
             return;
         }
         let blob = new Blob([stream], { type: 'application/json' });
@@ -97,7 +96,6 @@ var wrapper = function(plugin_info) {
                 let data = JSON.parse(event.target.result);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
                 self.loadOption(); // Load the imported settings
-                console.log('Settings imported successfully.');
             } catch (e) {
                 console.error('Failed to parse imported settings:', e);
             }
