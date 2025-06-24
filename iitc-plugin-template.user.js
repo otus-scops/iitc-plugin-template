@@ -63,8 +63,9 @@ var wrapper = function(plugin_info) {
         // self.addEventListener('message', function(e){ }, false);
     `;
 
-	// エンドポイントから起動される初期処理用
-	// セットアップ以外の処理で、設定変更時等に再度コールされる想定
+    // PLUGIN START ////////////////////////////////////////////////////////
+    // エンドポイントから起動される初期処理用
+    // セットアップ以外の処理で、設定変更時等に再度コールされる想定
     self.init = function(){
 
     };
@@ -195,7 +196,7 @@ var wrapper = function(plugin_info) {
     // workerからpostされたメッセージの処理
     self.workerResponse = function(e){
         if(!!e.data){
-        	
+            
         }
     }
     */
@@ -218,15 +219,16 @@ var wrapper = function(plugin_info) {
         // カスタムレイヤーの追加
         // self.myLayerGroup = new L.FeatureGroup();
         // window.addLayerGroup('[レイヤー名]', self.myLayerGroup, true);
+        // self.myLayerGroup.bringToBack(); // レイヤーを最背面に移動
         // レイヤーへのアイコン追加例
         // 詳細はLeafletのドキュメント参照
         // https://leafletjs.com/reference.html
         /*
         let myMarker = L.icon([lat, lng], {
             icon: L.divIcon({
-	            className: "myMarkerWrapper",
-	            html:'<div class="myMarkerClass"></div>',
-	        });
+                className: "myMarkerWrapper",
+                html:'<div class="myMarkerClass"></div>',
+            });
         });
         myMarker.addTo(self.myLayerGroup);.
         */
