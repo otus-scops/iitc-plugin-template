@@ -27,6 +27,9 @@ var wrapper = function(plugin_info) {
     plugin_info.buildName = 'iitc-ja-[Auther]'; // Name of the IITC build for first-party plugins
     plugin_info.dateTimeVersion = 'YYYYMMDDHHmmss'; // Datetime-derived version of the plugin
     plugin_info.pluginId = '[myPluginId]'; // ID/name of the plugin
+    
+    
+    // PLUGIN START ////////////////////////////////////////////////////////
     // ensure plugin framework is there, even if iitc is not yet loaded
     if (typeof window.plugin !== "function") window.plugin = function () { };
     // ensure plugin framework is there, even if kiwi plugin is not yet loaded
@@ -63,7 +66,6 @@ var wrapper = function(plugin_info) {
         // self.addEventListener('message', function(e){ }, false);
     `;
 
-    // PLUGIN START ////////////////////////////////////////////////////////
     // エンドポイントから起動される初期処理用
     // セットアップ以外の処理で、設定変更時等に再度コールされる想定
     self.init = function(){
