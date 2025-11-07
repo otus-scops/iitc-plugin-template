@@ -15,7 +15,7 @@
 // ==/UserScript==
 
 /**
- * Copyright 2024 [Author]
+ * Copyright 2025 [Author]
  *
  * Licensed under xxx
  */
