@@ -1,5 +1,5 @@
 // ==UserScript==
-// @id             iitc-plugin-[myPluginName]@[Author]
+// @id             iitc-plugin-[myPluginName]@[PLUGIN_AUTHOR]
 // @name           IITC Plugin: [myPluginName]
 // @category       [Plugin category]
 // @version        [Plugin version]
@@ -16,18 +16,19 @@
 // ==/UserScript==
 
 /**
- * このテンプレート自体は MIT License です。
- * (This template itself is licensed under MIT License.)
- * Copyright (c) 2025 otus-scops
+ * iitc-plugin-template
+ * Copyright 2025 otus-scopes
+ * (テンプレートのライセンスです。あなたのプラグインのライセンスは下記に記載してください)
  *
- * ---
+ * This template is licensed under MIT.
+ * https://opensource.org/licenses/MIT
  *
- * (利用者は、このセクションに自身の著作権表示とライセンスを追加してください)
- * (Users should add their own copyright notice and license in this section)
  *
- * 例 (Example):
- * Copyright (c) 2025 [Your Name]
- * Licensed under [Your Chosen License, e.g., MIT, GPLv3]
+ * (↓↓ このブロックを、あなたのプラグインの著作権表示とライセンスに書き換えてください ↓↓)
+ * Copyright 2025 [Author]
+ *
+ * Licensed under [Your License]
+ * (↑↑ ここまでを書き換えてください ↑↑)
  */
 
 (function () {
@@ -41,7 +42,7 @@
 
     // === プラグイン定義 ===
     // プレースホルダー: 開発者はこのセクションの値を書き換えてください
-    const PLUGIN_AUTHOR = "[Author]"; // @id の @ 以降と合わせる
+    const PLUGIN_AUTHOR = "[PLUGIN_AUTHOR]"; // @id の作者名と合わせる
     const PLUGIN_NAME = "[myPluginName]"; // 内部的なプラグイン名 (window.plugin[PLUGIN_NAME])
     const PLUGIN_ID = "[myPluginId]"; // @id と合わせる必要はない
     const PLUGIN_TITLE = "[myPluginName]"; // 設定ダイアログのタイトルやツールボックスの表示名
@@ -63,34 +64,115 @@
     // ======================
 
     // === デフォルト設定 ===
-    // (設定項目に合わせてIDとデフォルト値を変更してください)
+    // 開発者は、このセクションにプラグインの設定項目IDとデフォルト値を定義してください
+    // (例)
     const ID_TEXT_INPUT = `${PLUGIN_NAME}-text-input`;
     const ID_CHECKBOX = `${PLUGIN_NAME}-checkbox`;
+    const ID_SHOW_IN_SIDEBAR = `${PLUGIN_NAME}-show-in-sidebar`; // (New) サイドバー表示設定
 
     // デフォルト設定
     const DEFAULT_OPTIONS = {
       [ID_TEXT_INPUT]: "default text",
       [ID_CHECKBOX]: false,
+      [ID_SHOW_IN_SIDEBAR]: false, // (New) デフォルトはツールボックスに表示
     };
     // ======================
 
-    // === CSSスタイル ===
+    // === CSS定義 ===
     // (プラグインが使用するCSSをここに定義します)
+    // (モバイルフレンドリー対応)
     const CSS_STYLE = `
 /* CSS */
-/* override (必要に応じて) */
-@media (min-width: 1000px) {
-    .ui-dialog.${PLUGIN_NAME}-Options {
-        /* max-width: 900px; */
+/* override (IITC標準スタイル上書き) */
+@media (max-width: 600px) {
+    /* スマホ表示の際、ダイアログのデフォルトパディングを少し減らす */
+    .ui-dialog.${PLUGIN_NAME}-Options-dialog {
+        padding: 0.5em !important;
     }
 }
 
 /* plugin specific */
-.${PLUGIN_NAME}-export-button {
-    margin-right: 10px; /* Exportボタンの右側にマージン */
+/* モバイル対応: ダイアログの幅を画面幅に合わせる */
+.${PLUGIN_NAME}-Options-dialog {
+    max-width: 500px;  /* PCでの最大幅 */
+    width: 90vw;       /* 画面幅の90% */
 }
-    `;
-    // =================
+
+/* フォーム要素のスタイル */
+.${PLUGIN_NAME}-Options-dialog .form-group {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column; /* スマホでは縦並びを基本 */
+    align-items: flex-start;
+}
+
+.${PLUGIN_NAME}-Options-dialog label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+/* テキスト入力欄 */
+.${PLUGIN_NAME}-Options-dialog input[type="text"] {
+    width: 100%;       /* 幅を親要素に合わせる */
+    box-sizing: border-box; /* paddingを含めて幅100%にする */
+    padding: 8px;      /* タップしやすくする */
+    font-size: 1em;    /* フォントサイズを確保 */
+}
+
+/* チェックボックス（タップ領域の確保） */
+.${PLUGIN_NAME}-Options-dialog .checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 5px 0; /* 上下のタップ領域 */
+}
+.${PLUGIN_NAME}-Options-dialog input[type="checkbox"] {
+    margin-right: 10px;
+    /* タップしやすくするため、少し大きくする */
+    transform: scale(1.2);
+}
+
+/* ボタンのスタイル調整 */
+.${PLUGIN_NAME}-Options-dialog .ui-dialog-buttonset button {
+    font-size: 1em;    /* フォントサイズ確保 */
+    padding: 8px 12px; /* タップしやすく */
+    margin-left: 5px;
+}
+
+/* Import/Exportボタンが横に並ぶように調整 */
+.${PLUGIN_NAME}-Options-dialog .button-group {
+    display: flex;
+    flex-wrap: wrap; /* スマホでボタンがはみ出たら折り返す */
+    gap: 8px; /* ボタン間の隙間 */
+}
+
+/* (New) サイドバー用ボタンのスタイル */
+.${PLUGIN_NAME}-sidebar-button {
+    display: block;
+    width: 95%; /* 少しマージンを持たせる */
+    margin: 5px auto;
+    padding: 8px 10px;
+    box-sizing: border-box;
+    text-align: center;
+    background: #002244;
+    border: 1px solid #20A8B1;
+    color: #20A8B1;
+    cursor: pointer;
+    text-decoration: none;
+}
+.${PLUGIN_NAME}-sidebar-button:hover {
+    background: #20A8B1;
+    color: #002244;
+}
+
+/* (New) ボタンの表示/非表示を制御 (ラッパー) */
+.${PLUGIN_NAME}-toolbox-button-wrapper,
+.${PLUGIN_NAME}-sidebar-button-wrapper {
+    display: none; /* initで切り替えるまで非表示 */
+}
+            `;
+    // ======================
 
     plugin_info.buildName = `iitc-ja-${PLUGIN_AUTHOR}`; // Name of the IITC build for first-party plugins
     plugin_info.dateTimeVersion = "YYYYMMDDHHmmss"; // Datetime-derived version of the plugin
@@ -131,17 +213,34 @@
 
     /**
      * 初期処理（プラグイン起動時や設定変更時に呼ばれる）
-     * 設定値 (OptionData) に基づいて、レイヤーの再描画などを行います。
+     * ボタンの表示/非表示の切り替えなどを行う
      * @returns {void}
      */
     self.init = function () {
-      // 例: 設定値に基づいて何かを再描画する
       console.log(`[${PLUGIN_NAME}] init called. Options:`, OptionData);
+
+      // --- (New) ボタン表示制御 ---
+      // CSSの display を切り替える
+      if (OptionData[ID_SHOW_IN_SIDEBAR]) {
+        // サイドバーボタンを表示
+        $(`.${PLUGIN_NAME}-toolbox-button-wrapper`).css("display", "none");
+        $(`.${PLUGIN_NAME}-sidebar-button-wrapper`).css("display", "block");
+        // もし 'info' ペインが表示中なら、ボタンがまだなければ追加する
+        if (window.selected_pane === "info") {
+          self.addSidebarButton();
+        }
+      } else {
+        // ツールボックスボタンを表示
+        $(`.${PLUGIN_NAME}-toolbox-button-wrapper`).css("display", "inline"); // spanなのでinline
+        $(`.${PLUGIN_NAME}-sidebar-button-wrapper`).css("display", "none");
+      }
+
+      // 例: 設定値に基づいて何かを再描画する
       // window.map.fire('mapdataanchorchanged'); // 必要ならマップの再描画をトリガー
     };
 
     /**
-     * 設定をlocalStorageから読み込み、OptionDataに格納します。
+     * 設定の読み込み (localStorageから)
      * @returns {void}
      */
     self.loadOption = function () {
@@ -163,7 +262,7 @@
     };
 
     /**
-     * 現在のOptionDataをlocalStorageに保存します。
+     * 設定の保存 (localStorageへ)
      * @returns {void}
      */
     self.saveOption = function () {
@@ -176,10 +275,11 @@
     };
 
     /**
-     * 現在のlocalStorageに保存されている設定を .json ファイルとしてエクスポートします。
+     * 設定のエクスポート
      * @returns {void}
      */
     self.exportOption = function () {
+      // 現在のlocalStorageに保存されているデータをエクスポート
       const stream = localStorage.getItem(STORAGE_KEY);
       if (stream === null) {
         alert("保存されている設定データがありません。");
@@ -199,8 +299,8 @@
     };
 
     /**
-     * .json ファイルから設定をインポートし、localStorageに保存・適用します。
-     * @param {File} file - インポートする .json ファイル (Input要素から取得)
+     * 設定のインポート
+     * @param {File} file - インポートする .json ファイル
      * @returns {void}
      */
     self.importOption = function (file) {
@@ -221,7 +321,10 @@
           self.init(); // 設定を反映する
           alert("設定をインポートしました。");
         } catch (e) {
-          console.error(`[${PLUGIN_NAME}] Failed to parse imported settings:`, e);
+          console.error(
+            `[${PLUGIN_NAME}] Failed to parse imported settings:`,
+            e,
+          );
           alert("設定ファイルの読み込みに失敗しました。");
         }
       };
@@ -229,44 +332,58 @@
     };
 
     /**
-     * 設定ダイアログを表示します。
+     * 設定ダイアログの表示 (モバイルフレンドリー対応)
      * @returns {void}
      */
     self.settingDialog = function () {
+      // <table> をやめ、div と label を使用
       const html = `
                 <div>
                     <p>設定をインポートまたはエクスポートできます。</p>
                 </div>
                 <hr>
-                <table>
-                    <tr>
-                        <th>テキスト入力：</th>
-                        <td><input type="text" id="${ID_TEXT_INPUT}" size="26"></td>
-                    </tr>
-                    <tr>
-                        <th>チェックボックス：</th>
-                        <td><input type="checkbox" id="${ID_CHECKBOX}"><label for="${ID_CHECKBOX}">チェック</label></td>
-                    </tr>
-                </table>
+                
+                <div class="form-group">
+                    <label for="${ID_TEXT_INPUT}">テキスト入力：</label>
+                    <input type="text" id="${ID_TEXT_INPUT}" placeholder="デフォルトのテキスト">
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label" for="${ID_CHECKBOX}">
+                        <input type="checkbox" id="${ID_CHECKBOX}">
+                        <span>チェックボックス</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label" for="${ID_SHOW_IN_SIDEBAR}">
+                        <input type="checkbox" id="${ID_SHOW_IN_SIDEBAR}">
+                        <span>設定ボタンをサイドバー(情報タブ)に表示 (モバイル向け)</span>
+                    </label>
+                </div>
             `;
 
       dialog({
         html: html,
         id: `${PLUGIN_NAME}-Options`,
         title: `${PLUGIN_TITLE} 設定`,
-        width: 500,
-        modal: true, // ダイアログ以外を操作不可にする
+        // width: 500, // 固定幅を削除
+        dialogClass: `${PLUGIN_NAME}-Options-dialog`, // CSS適用のためクラスを指定
+        modal: true,
         focusCallback: function () {
           // ダイアログ表示時に現在の設定値をフォームに反映
           document.getElementById(ID_TEXT_INPUT).value =
             OptionData[ID_TEXT_INPUT] || "";
           document.getElementById(ID_CHECKBOX).checked =
             OptionData[ID_CHECKBOX] || false;
+          document.getElementById(ID_SHOW_IN_SIDEBAR).checked =
+            OptionData[ID_SHOW_IN_SIDEBAR] || false;
         },
         buttons: [
+          // ボタンをグループ化してCSSでレイアウト調整
           {
             text: "Import",
-            class: `${PLUGIN_NAME}-import-button`,
+            class: "button-group", // CSSで .button-group を参照
             click: function () {
               const input = document.createElement("input");
               input.type = "file";
@@ -283,7 +400,7 @@
           },
           {
             text: "Export",
-            class: `${PLUGIN_NAME}-export-button`,
+            class: "button-group",
             click: function () {
               self.exportOption();
               // エクスポートはダイアログを閉じない
@@ -291,13 +408,14 @@
           },
           {
             text: "OK",
-            class: `${PLUGIN_NAME}-ok-button`,
             click: function () {
               // フォームから値を取得してOptionDataに保存
               OptionData[ID_TEXT_INPUT] =
                 document.getElementById(ID_TEXT_INPUT).value;
               OptionData[ID_CHECKBOX] =
                 document.getElementById(ID_CHECKBOX).checked;
+              OptionData[ID_SHOW_IN_SIDEBAR] =
+                document.getElementById(ID_SHOW_IN_SIDEBAR).checked;
 
               self.saveOption(); // localStorageに保存
               self.init(); // 設定を反映
@@ -307,7 +425,6 @@
           },
           {
             text: "Cancel",
-            class: `${PLUGIN_NAME}-cancel-button`,
             click: function () {
               $(this).dialog("close");
             },
@@ -317,65 +434,66 @@
     }; // self.settingDialog end
 
     // --- IndexedDB ヘルパー関数 ---
-
     /**
      * IndexedDBを開き、必要に応じてアップグレードを実行します。
      * @param {string} dbName データベース名
-     * @param {number} version バージョン
-     * @param {function(IDBDatabase, IDBTransaction):void} [upgradeNeededCallback] DBのアップグレード時に呼ばれるコールバック (オプション)
-     * @returns {Promise<IDBDatabase>} データベースインスタンスを返すPromise
+     * @param {number} dbVersion データベースのバージョン
+     * @returns {Promise<IDBDatabase>} データベースインスタンス
      */
-    self.idbOpen = function (dbName, version, upgradeNeededCallback) {
+    self.idbOpen = function (dbName, dbVersion) {
       return new Promise((resolve, reject) => {
-        const request = indexedDB.open(dbName, version);
+        const request = indexedDB.open(dbName, dbVersion);
 
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
-          const transaction = event.target.transaction;
-          if (upgradeNeededCallback && typeof upgradeNeededCallback === "function") {
-            upgradeNeededCallback(db, transaction);
+          // (開発者向け)
+          // オブジェクトストア（テーブル）やインデックスの定義をここで行います。
+          // 例:
+          if (!db.objectStoreNames.contains(IDB_STORE_NAME_LOGS)) {
+            // keyPath: 'id' (主キー)
+            // autoIncrement: true (主キーを自動採番)
+            db.createObjectStore(IDB_STORE_NAME_LOGS, {
+              keyPath: "id",
+              autoIncrement: true,
+            });
           }
+          if (!db.objectStoreNames.contains(IDB_STORE_NAME_DATA)) {
+            // keyPathを指定しない場合、put/get時にキーを明示的に指定する必要があります
+            db.createObjectStore(IDB_STORE_NAME_DATA);
+          }
+          // インデックスの作成例:
+          // const store = event.target.transaction.objectStore(IDB_STORE_NAME_LOGS);
+          // store.createIndex('timestamp', 'timestamp', { unique: false });
         };
 
         request.onsuccess = (event) => {
-          // idbInstance = event.target.result; // 必要ならキャッシュ
           resolve(event.target.result);
         };
 
         request.onerror = (event) => {
-          console.error(`[${PLUGIN_NAME}] IndexedDB error:`, event.target.error);
           reject(event.target.error);
-        };
-
-        request.onblocked = () => {
-          // 他のタブで古いバージョンが開かれている場合
-          console.warn(`[${PLUGIN_NAME}] IndexedDB open blocked. Please close other tabs.`);
-          alert("IITCプラグインのデータベース接続がブロックされました。他のIITCタブを閉じてリロードしてください。");
         };
       });
     };
 
     /**
-     * IndexedDBのオブジェクトストアにデータを追加または更新します (Put)。
+     * データをIndexedDBに保存（追加または更新）します。
      * @param {string} dbName データベース名
      * @param {string} storeName ストア名
-     * @param {any} data 保存するデータ
-     * @param {any} [key] プライマリキー (オプション。ストアが autoIncrement でない場合や、キーを明示したい場合)
-     * @returns {Promise<any>} 保存されたデータのキーを返すPromise
+     * @param {any} value 保存する値
+     * @param {any} [key] オブジェクトストアがkeyPathを持たない場合のキー
+     * @returns {Promise<void>}
      */
-    self.idbPut = async function (dbName, storeName, data, key) {
-      // DBを開く (バージョンは既存のものを利用するため、upgradeCallbackなしで開く)
-      const db = await self.idbOpen(dbName, IDB_VERSION); // バージョンは定数を使用
+    self.idbPut = async function (dbName, storeName, value, key) {
+      const db = await self.idbOpen(dbName, IDB_VERSION);
       return new Promise((resolve, reject) => {
         try {
           const transaction = db.transaction([storeName], "readwrite");
           const store = transaction.objectStore(storeName);
+          const request = key ? store.put(value, key) : store.put(value);
 
-          // (keyPath が autoIncrement の場合など、key が不要な場合に対応)
-          const request = key !== undefined ? store.put(data, key) : store.put(data);
-
-          request.onsuccess = (event) => {
-            resolve(event.target.result); // 保存されたキー (ID)
+          request.onsuccess = () => {
+            resolve();
           };
           request.onerror = (event) => {
             reject(event.target.error);
@@ -394,11 +512,11 @@
     };
 
     /**
-     * IndexedDBのオブジェクトストアからデータを取得します (Get)。
+     * IndexedDBからキーを指定してデータを取得します。
      * @param {string} dbName データベース名
      * @param {string} storeName ストア名
      * @param {any} key 取得するデータのキー
-     * @returns {Promise<any>} 取得したデータを返すPromise (存在しない場合は undefined)
+     * @returns {Promise<any>} 取得したデータ
      */
     self.idbGet = async function (dbName, storeName, key) {
       const db = await self.idbOpen(dbName, IDB_VERSION);
@@ -428,10 +546,10 @@
     };
 
     /**
-     * IndexedDBのオブジェクトストアから全てのデータを取得します (GetAll)。
+     * IndexedDBからストア内のすべてのデータを取得します。
      * @param {string} dbName データベース名
      * @param {string} storeName ストア名
-     * @returns {Promise<Array<any>>} 取得したデータの配列を返すPromise
+     * @returns {Promise<any[]>} データの配列
      */
     self.idbGetAll = async function (dbName, storeName) {
       const db = await self.idbOpen(dbName, IDB_VERSION);
@@ -439,7 +557,7 @@
         try {
           const transaction = db.transaction([storeName], "readonly");
           const store = transaction.objectStore(storeName);
-          const request = store.getAll(); // getAll は IE ではサポート外
+          const request = store.getAll();
 
           request.onsuccess = (event) => {
             resolve(event.target.result);
@@ -461,11 +579,11 @@
     };
 
     /**
-     * IndexedDBのオブジェクトストアからデータを削除します (Delete)。
+     * IndexedDBからキーを指定してデータを削除します。
      * @param {string} dbName データベース名
      * @param {string} storeName ストア名
      * @param {any} key 削除するデータのキー
-     * @returns {Promise<void>} 完了時に解決されるPromise
+     * @returns {Promise<void>}
      */
     self.idbDelete = async function (dbName, storeName, key) {
       const db = await self.idbOpen(dbName, IDB_VERSION);
@@ -495,10 +613,10 @@
     };
 
     /**
-     * IndexedDBのオブジェクトストアの全データをクリアします (Clear)。
+     * IndexedDBのストア内のすべてのデータを削除します。
      * @param {string} dbName データベース名
      * @param {string} storeName ストア名
-     * @returns {Promise<void>} 完了時に解決されるPromise
+     * @returns {Promise<void>}
      */
     self.idbClear = async function (dbName, storeName) {
       const db = await self.idbOpen(dbName, IDB_VERSION);
@@ -552,6 +670,41 @@
         */
 
     /**
+     * (New) サイドバーの「情報」タブに設定ボタンを追加します。
+     * @returns {void}
+     */
+    self.addSidebarButton = function () {
+      // 既にボタンがないか確認
+      if ($(`.${PLUGIN_NAME}-sidebar-button-wrapper`).length > 0) return;
+
+      // 'plugin-info-options' セクションを探す
+      let container = $("#sidebar #info .plugin-info-options");
+      if (container.length === 0) {
+        // セクションがない場合は、'info' タブの最後に追加
+        container = $("#sidebar #info");
+      }
+
+      container.append(
+        `<div class="${PLUGIN_NAME}-sidebar-button-wrapper">
+            <a class="${PLUGIN_NAME}-sidebar-button" onclick="window.plugin.${PLUGIN_NAME}.settingDialog();">${PLUGIN_TITLE} 設定</a>
+        </div>`,
+      );
+
+      // init() を呼んで、現在の設定に基づいた表示状態を再適用
+      self.init();
+    };
+
+    /**
+     * (New) 'paneChanged' フックのコールバック
+     * @param {string} pane - 表示されたペインのID
+     */
+    self.onPaneChanged = function (pane) {
+      if (pane === "info") {
+        self.addSidebarButton();
+      }
+    };
+
+    /**
      * プラグインが追加した要素やフックを破棄します。
      * (注: 現状のIITCではこの関数は自動的には呼ばれませんが、
      * デバッグコンソールから手動実行 (window.plugin.[PLUGIN_NAME].cleanup()) することで、
@@ -562,29 +715,35 @@
       console.log(`[${PLUGIN_NAME}] cleaning up...`);
 
       // 1. ツールボックスからリンクを削除
-      $(`#toolbox a[onclick="window.plugin.${PLUGIN_NAME}.settingDialog();"]`).remove();
+      $(`.${PLUGIN_NAME}-toolbox-button-wrapper`).remove();
+
+      // 1b. (New) サイドバーからリンクを削除
+      $(`.${PLUGIN_NAME}-sidebar-button-wrapper`).remove();
 
       // 2. CSSの削除
-      $(`#${PLUGIN_NAME}-style`).remove();
+      const styleTag = document.getElementById(`${PLUGIN_NAME}-style`);
+      if (styleTag) {
+        styleTag.remove();
+      }
 
       // 3. カスタムレイヤーの削除
-      // if (self.myLayerGroup) {
-      //   window.removeLayerGroup(self.myLayerGroup);
-      //   self.myLayerGroup = null;
-      // }
+      /*
+            if (self.myLayerGroup) {
+                window.removeLayerGroup(self.myLayerGroup);
+                self.myLayerGroup = null;
+            }
+            */
 
-      // 4. フックの解除
-      // (例: window.removeHook('publicChatDataAvailable', self.listenerFunction);)
+      // 4. (New) フックの解除
+      window.removeHook("paneChanged", self.onPaneChanged);
 
       // 5. Workerの終了
-      // if (objWorker) {
-      //   objWorker.terminate();
-      //   objWorker = null;
-      // }
-
-      // 6. プラグイン名前空間のクリーンアップ（推奨されませんが、最終手段として）
-      // delete window.plugin[PLUGIN_NAME];
-
+      /*
+            if (objWorker) {
+                objWorker.terminate();
+                objWorker = null;
+            }
+            */
       console.log(`[${PLUGIN_NAME}] cleanup complete.`);
     };
 
@@ -598,75 +757,36 @@
 
       // (IndexedDBの使用例)
       /*
-            // --- DBの初期化 (onupgradeneeded) ---
-            // self.start() の最初や、必要なタイミングでDB構造を定義します。
-            const dbUpgradeCallback = (db, transaction) => {
-                console.log(`[${PLUGIN_NAME}] IndexedDB upgrade needed. Old version: ${transaction.db.version}`);
-                // オブジェクトストア (テーブル) の作成
-                if (!db.objectStoreNames.contains(IDB_STORE_NAME_LOGS)) {
-                    // keyPath: 'id', autoIncrement: true -> IDを自動採番
-                    db.createObjectStore(IDB_STORE_NAME_LOGS, { keyPath: 'id', autoIncrement: true });
-                }
-                if (!db.objectStoreNames.contains(IDB_STORE_NAME_DATA)) {
-                    // keyPathなし -> Put時にキーを明示的に指定する必要がある
-                    db.createObjectStore(IDB_STORE_NAME_DATA);
-                }
-            };
-
-            // DBを開く (バージョンが変わると upgradeCallback が呼ばれる)
-            self.idbOpen(IDB_NAME, IDB_VERSION, dbUpgradeCallback)
-                .then(db => {
-                    console.log(`[${PLUGIN_NAME}] IndexedDB '${IDB_NAME}' opened successfully.`, db);
-                    db.close(); // 開いただけなので閉じる
-                })
-                .catch(err => {
-                    console.error(`[${PLUGIN_NAME}] Failed to open IndexedDB:`, err);
-                });
-
-            // --- データの書き込み (async/await) ---
-            const saveLog = async () => {
+            (async function() {
                 try {
-                    const logEntry = {
-                        timestamp: new Date(),
-                        message: "Plugin started or data saved",
-                        level: "info"
-                    };
-                    // 'logs' ストア (autoIncrement) にデータを追加
-                    const savedKey = await self.idbPut(IDB_NAME, IDB_STORE_NAME_LOGS, logEntry);
-                    console.log(`[${PLUGIN_NAME}] Log saved with key:`, savedKey);
+                    // 1. データベースの初期化（自動アップグレード）
+                    console.log(`[${PLUGIN_NAME}] Opening IDB...`);
+                    await self.idbOpen(IDB_NAME, IDB_VERSION);
+                    
+                    // 2. データの保存 (keyPathなしのストア)
+                    await self.idbPut(IDB_NAME, IDB_STORE_NAME_DATA, { info: 'some data' }, 'myDataKey');
+                    
+                    // 3. データの保存 (autoIncrementのストア)
+                    await self.idbPut(IDB_NAME, IDB_STORE_NAME_LOGS, { timestamp: Date.now(), event: 'plugin started' });
 
-                    // 'data' ストア (keyPathなし) にデータを保存 (キーを指定)
-                    const myData = { value: "some portal data" };
-                    await self.idbPut(IDB_NAME, IDB_STORE_NAME_DATA, myData, "myKey");
-                    console.log(`[${PLUGIN_NAME}] Data saved with key: "myKey"`);
+                    // 4. データの取得
+                    const data = await self.idbGet(IDB_NAME, IDB_STORE_NAME_DATA, 'myDataKey');
+                    console.log(`[${PLUGIN_NAME}] IDB 'myDataKey':`, data);
 
-                } catch (err) {
-                    console.error(`[${PLUGIN_NAME}] Failed to save data to IDB:`, err);
-                }
-            };
-            // saveLog(); // 実行
-
-            // --- データの読み込み (async/await) ---
-            const loadData = async () => {
-                try {
-                    // 'data' ストアからキー指定で取得
-                    const myData = await self.idbGet(IDB_NAME, IDB_STORE_NAME_DATA, "myKey");
-                    console.log(`[${PLUGIN_NAME}] Loaded data for "myKey":`, myData);
-
-                    // 'logs' ストアから全件取得
+                    // 5. 全データの取得
                     const allLogs = await self.idbGetAll(IDB_NAME, IDB_STORE_NAME_LOGS);
-                    console.log(`[${PLUGIN_NAME}] All logs:`, allLogs);
+                    console.log(`[${PLUGIN_NAME}] IDB all logs:`, allLogs);
 
-                    // (不要になったら削除)
-                    // await self.idbDelete(IDB_NAME, IDB_STORE_NAME_DATA, "myKey");
-                    // (ストアを空にする)
+                    // 6. データの削除
+                    // await self.idbDelete(IDB_NAME, IDB_STORE_NAME_DATA, 'myDataKey');
+
+                    // 7. ストアの全削除
                     // await self.idbClear(IDB_NAME, IDB_STORE_NAME_LOGS);
 
-                } catch (err) {
-                    console.error(`[${PLUGIN_NAME}] Failed to load data from IDB:`, err);
+                } catch (e) {
+                    console.error(`[${PLUGIN_NAME}] IndexedDB Example failed:`, e);
                 }
-            };
-            // loadData(); // 実行
+            })();
             */
 
       // (Web workerを用いる場合の初期化例)
@@ -687,21 +807,49 @@
       /*
             self.myLayerGroup = new L.FeatureGroup();
             window.addLayerGroup('[レイヤー名]', self.myLayerGroup, true);
+            // self.myLayerGroup.bringToBack(); // レイヤーを最背面に移動
+
+            // --- アイコンの例 ---
+            // 1. インラインSVG (ライセンス問題を回避しやすい)
+            const mySvgIcon = L.divIcon({
+                html: `<svg width="10" height="10" viewBox="0 0 10 10" style="fill: #ff0000; stroke: #fff; stroke-width: 2px;">
+                           <circle cx="5" cy="5" r="4" />
+                       </svg>`,
+                className: "my-custom-div-icon", // CSSでスタイルを当てるためのクラス
+                iconSize: [10, 10],
+                iconAnchor: [5, 5]
+            });
+            // L.marker([lat, lng], { icon: mySvgIcon }).addTo(self.myLayerGroup);
+
+            // 2. Base64エンコード (パブリックドメインまたは適切なライセンスの画像をエンコードして使用)
+            // (例: 1x1の赤い点)
+            const myBase64IconUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+            const myBase64Icon = L.icon({
+                iconUrl: myBase64IconUrl,
+                iconSize: [5, 5] // 表示サイズ
+            });
+            // L.marker([lat, lng], { icon: myBase64Icon }).addTo(self.myLayerGroup);
             */
 
-      // 2. ツールボックスへの項目追加
+      // 2. ツールボックスへの項目追加 (ラッパーで囲む)
       $("#toolbox").append(
-        ` <a onclick="window.plugin.${PLUGIN_NAME}.settingDialog();" title="${PLUGIN_TITLE} の設定を開きます">${PLUGIN_TITLE} 設定</a>`,
+        `<span class="${PLUGIN_NAME}-toolbox-button-wrapper">
+            <a onclick="window.plugin.${PLUGIN_NAME}.settingDialog();" title="${PLUGIN_TITLE} の設定を開きます">${PLUGIN_TITLE} 設定</a>
+        </span>`,
       );
+
+      // 2b. (New) サイドバーへの項目追加 (フック)
+      // (self.onPaneChanged をコールバックとして登録)
+      window.addHook("paneChanged", self.onPaneChanged);
 
       // 3. CSSの適用
       const styleTag = document.createElement("style");
       styleTag.setAttribute("type", "text/css");
       styleTag.id = `${PLUGIN_NAME}-style`; // クリーンアップ用にIDを付与
-      styleTag.innerHTML = CSS_STYLE; // innerTextよりinnerHTMLの方が一般的
+      styleTag.innerHTML = CSS_STYLE;
       document.getElementsByTagName("head")[0].appendChild(styleTag);
 
-      // 4. 初期処理の実行
+      // 4. 初期処理の実行 (ボタンの表示切替など)
       self.init();
     };
 
