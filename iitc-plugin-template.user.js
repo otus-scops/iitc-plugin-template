@@ -70,11 +70,15 @@
     const ID_CHECKBOX = `${PLUGIN_NAME}-checkbox`;
     const ID_SHOW_IN_SIDEBAR = `${PLUGIN_NAME}-show-in-sidebar`; // (New) サイドバー表示設定
 
+    // (New) モバイル環境 (isSmartphone) かどうかを判定
+    // (window.isSmartphone は IITC Mobile 環境で true を返す関数)
+    const isMobile = typeof window.isSmartphone === "function" && window.isSmartphone();
+
     // デフォルト設定
     const DEFAULT_OPTIONS = {
       [ID_TEXT_INPUT]: "default text",
       [ID_CHECKBOX]: false,
-      [ID_SHOW_IN_SIDEBAR]: false, // (New) デフォルトはツールボックスに表示
+      [ID_SHOW_IN_SIDEBAR]: isMobile, // (New) モバイルならtrue, PCならfalseをデフォルトにする
     };
     // ======================
 
@@ -358,8 +362,9 @@
                 <div class="form-group">
                     <label class="checkbox-label" for="${ID_SHOW_IN_SIDEBAR}">
                         <input type="checkbox" id="${ID_SHOW_IN_SIDEBAR}">
-                        <span>設定ボタンをサイドバー(情報タブ)に表示 (モバイル向け)</span>
+                        <span>設定ボタンをサイドバー(情報タブ)に表示</span>
                     </label>
+                    <small style="margin-left: 30px; margin-top: 4px; opacity: 0.8;">(デフォルト: ${isMobile ? "ON (モバイル検出)" : "OFF (PC検出)"})</small>
                 </div>
             `;
 
