@@ -46,12 +46,21 @@
     const PLUGIN_ID = "[myPluginId]"; // @id と合わせる必要はない
     const PLUGIN_TITLE = "[myPluginName]"; // 設定ダイアログのタイトルやツールボックスの表示名
 
+    // === ストレージ定義 ===
     /* --- ストレージの使い分け ---
      * 1. localStorage (当テンプレートで使用): 永続的な「設定」の保存に最適。
      * 2. sessionStorage: ブラウザタブを閉じたら消えて良い「一時的な状態」の保存に。
      * 3. IndexedDB: ポータルデータやログなど、「大量の構造化データ」を保存する場合に検討。
      */
     const STORAGE_KEY = `${PLUGIN_NAME}-option`; // localStorageのキー
+
+    // --- IndexedDB 定義 (例) ---
+    // (IndexedDBを使用する場合、これらの値を適宜変更してください)
+    const IDB_NAME = `${PLUGIN_NAME}-database`;
+    const IDB_VERSION = 1;
+    const IDB_STORE_NAME_LOGS = "logs"; // 例: ログストア
+    const IDB_STORE_NAME_DATA = "data"; // 例: データストア
+    // ======================
 
     // === デフォルト設定 ===
     // (設定項目に合わせてIDとデフォルト値を変更してください)
@@ -305,7 +314,220 @@
           },
         ],
       });
+    }; // self.settingDialog end
+
+    // --- IndexedDB ヘルパー関数 ---
+
+    /**
+     * IndexedDBを開き、必要に応じてアップグレードを実行します。
+     * @param {string} dbName データベース名
+     * @param {number} version バージョン
+     * @param {function(IDBDatabase, IDBTransaction):void} [upgradeNeededCallback] DBのアップグレード時に呼ばれるコールバック (オプション)
+     * @returns {Promise<IDBDatabase>} データベースインスタンスを返すPromise
+     */
+    self.idbOpen = function (dbName, version, upgradeNeededCallback) {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(dbName, version);
+
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          const transaction = event.target.transaction;
+          if (upgradeNeededCallback && typeof upgradeNeededCallback === "function") {
+            upgradeNeededCallback(db, transaction);
+          }
+        };
+
+        request.onsuccess = (event) => {
+          // idbInstance = event.target.result; // 必要ならキャッシュ
+          resolve(event.target.result);
+        };
+
+        request.onerror = (event) => {
+          console.error(`[${PLUGIN_NAME}] IndexedDB error:`, event.target.error);
+          reject(event.target.error);
+        };
+
+        request.onblocked = () => {
+          // 他のタブで古いバージョンが開かれている場合
+          console.warn(`[${PLUGIN_NAME}] IndexedDB open blocked. Please close other tabs.`);
+          alert("IITCプラグインのデータベース接続がブロックされました。他のIITCタブを閉じてリロードしてください。");
+        };
+      });
     };
+
+    /**
+     * IndexedDBのオブジェクトストアにデータを追加または更新します (Put)。
+     * @param {string} dbName データベース名
+     * @param {string} storeName ストア名
+     * @param {any} data 保存するデータ
+     * @param {any} [key] プライマリキー (オプション。ストアが autoIncrement でない場合や、キーを明示したい場合)
+     * @returns {Promise<any>} 保存されたデータのキーを返すPromise
+     */
+    self.idbPut = async function (dbName, storeName, data, key) {
+      // DBを開く (バージョンは既存のものを利用するため、upgradeCallbackなしで開く)
+      const db = await self.idbOpen(dbName, IDB_VERSION); // バージョンは定数を使用
+      return new Promise((resolve, reject) => {
+        try {
+          const transaction = db.transaction([storeName], "readwrite");
+          const store = transaction.objectStore(storeName);
+
+          // (keyPath が autoIncrement の場合など、key が不要な場合に対応)
+          const request = key !== undefined ? store.put(data, key) : store.put(data);
+
+          request.onsuccess = (event) => {
+            resolve(event.target.result); // 保存されたキー (ID)
+          };
+          request.onerror = (event) => {
+            reject(event.target.error);
+          };
+          transaction.oncomplete = () => {
+            db.close();
+          };
+          transaction.onerror = (event) => {
+            reject(event.target.error);
+          };
+        } catch (e) {
+          reject(e);
+          db.close();
+        }
+      });
+    };
+
+    /**
+     * IndexedDBのオブジェクトストアからデータを取得します (Get)。
+     * @param {string} dbName データベース名
+     * @param {string} storeName ストア名
+     * @param {any} key 取得するデータのキー
+     * @returns {Promise<any>} 取得したデータを返すPromise (存在しない場合は undefined)
+     */
+    self.idbGet = async function (dbName, storeName, key) {
+      const db = await self.idbOpen(dbName, IDB_VERSION);
+      return new Promise((resolve, reject) => {
+        try {
+          const transaction = db.transaction([storeName], "readonly");
+          const store = transaction.objectStore(storeName);
+          const request = store.get(key);
+
+          request.onsuccess = (event) => {
+            resolve(event.target.result);
+          };
+          request.onerror = (event) => {
+            reject(event.target.error);
+          };
+          transaction.oncomplete = () => {
+            db.close();
+          };
+          transaction.onerror = (event) => {
+            reject(event.target.error);
+          };
+        } catch (e) {
+          reject(e);
+          db.close();
+        }
+      });
+    };
+
+    /**
+     * IndexedDBのオブジェクトストアから全てのデータを取得します (GetAll)。
+     * @param {string} dbName データベース名
+     * @param {string} storeName ストア名
+     * @returns {Promise<Array<any>>} 取得したデータの配列を返すPromise
+     */
+    self.idbGetAll = async function (dbName, storeName) {
+      const db = await self.idbOpen(dbName, IDB_VERSION);
+      return new Promise((resolve, reject) => {
+        try {
+          const transaction = db.transaction([storeName], "readonly");
+          const store = transaction.objectStore(storeName);
+          const request = store.getAll(); // getAll は IE ではサポート外
+
+          request.onsuccess = (event) => {
+            resolve(event.target.result);
+          };
+          request.onerror = (event) => {
+            reject(event.target.error);
+          };
+          transaction.oncomplete = () => {
+            db.close();
+          };
+          transaction.onerror = (event) => {
+            reject(event.target.error);
+          };
+        } catch (e) {
+          reject(e);
+          db.close();
+        }
+      });
+    };
+
+    /**
+     * IndexedDBのオブジェクトストアからデータを削除します (Delete)。
+     * @param {string} dbName データベース名
+     * @param {string} storeName ストア名
+     * @param {any} key 削除するデータのキー
+     * @returns {Promise<void>} 完了時に解決されるPromise
+     */
+    self.idbDelete = async function (dbName, storeName, key) {
+      const db = await self.idbOpen(dbName, IDB_VERSION);
+      return new Promise((resolve, reject) => {
+        try {
+          const transaction = db.transaction([storeName], "readwrite");
+          const store = transaction.objectStore(storeName);
+          const request = store.delete(key);
+
+          request.onsuccess = () => {
+            resolve();
+          };
+          request.onerror = (event) => {
+            reject(event.target.error);
+          };
+          transaction.oncomplete = () => {
+            db.close();
+          };
+          transaction.onerror = (event) => {
+            reject(event.target.error);
+          };
+        } catch (e) {
+          reject(e);
+          db.close();
+        }
+      });
+    };
+
+    /**
+     * IndexedDBのオブジェクトストアの全データをクリアします (Clear)。
+     * @param {string} dbName データベース名
+     * @param {string} storeName ストア名
+     * @returns {Promise<void>} 完了時に解決されるPromise
+     */
+    self.idbClear = async function (dbName, storeName) {
+      const db = await self.idbOpen(dbName, IDB_VERSION);
+      return new Promise((resolve, reject) => {
+        try {
+          const transaction = db.transaction([storeName], "readwrite");
+          const store = transaction.objectStore(storeName);
+          const request = store.clear();
+
+          request.onsuccess = () => {
+            resolve();
+          };
+          request.onerror = (event) => {
+            reject(event.target.error);
+          };
+          transaction.oncomplete = () => {
+            db.close();
+          };
+          transaction.onerror = (event) => {
+            reject(event.target.error);
+          };
+        } catch (e) {
+          reject(e);
+          db.close();
+        }
+      });
+    };
+
+    // --- IndexedDB ヘルパーここまで ---
 
     /* (Workerのセットアップ例) */
     /*
@@ -373,6 +595,79 @@
     self.start = function () {
       // 1. 設定値の読み込み
       self.loadOption();
+
+      // (IndexedDBの使用例)
+      /*
+            // --- DBの初期化 (onupgradeneeded) ---
+            // self.start() の最初や、必要なタイミングでDB構造を定義します。
+            const dbUpgradeCallback = (db, transaction) => {
+                console.log(`[${PLUGIN_NAME}] IndexedDB upgrade needed. Old version: ${transaction.db.version}`);
+                // オブジェクトストア (テーブル) の作成
+                if (!db.objectStoreNames.contains(IDB_STORE_NAME_LOGS)) {
+                    // keyPath: 'id', autoIncrement: true -> IDを自動採番
+                    db.createObjectStore(IDB_STORE_NAME_LOGS, { keyPath: 'id', autoIncrement: true });
+                }
+                if (!db.objectStoreNames.contains(IDB_STORE_NAME_DATA)) {
+                    // keyPathなし -> Put時にキーを明示的に指定する必要がある
+                    db.createObjectStore(IDB_STORE_NAME_DATA);
+                }
+            };
+
+            // DBを開く (バージョンが変わると upgradeCallback が呼ばれる)
+            self.idbOpen(IDB_NAME, IDB_VERSION, dbUpgradeCallback)
+                .then(db => {
+                    console.log(`[${PLUGIN_NAME}] IndexedDB '${IDB_NAME}' opened successfully.`, db);
+                    db.close(); // 開いただけなので閉じる
+                })
+                .catch(err => {
+                    console.error(`[${PLUGIN_NAME}] Failed to open IndexedDB:`, err);
+                });
+
+            // --- データの書き込み (async/await) ---
+            const saveLog = async () => {
+                try {
+                    const logEntry = {
+                        timestamp: new Date(),
+                        message: "Plugin started or data saved",
+                        level: "info"
+                    };
+                    // 'logs' ストア (autoIncrement) にデータを追加
+                    const savedKey = await self.idbPut(IDB_NAME, IDB_STORE_NAME_LOGS, logEntry);
+                    console.log(`[${PLUGIN_NAME}] Log saved with key:`, savedKey);
+
+                    // 'data' ストア (keyPathなし) にデータを保存 (キーを指定)
+                    const myData = { value: "some portal data" };
+                    await self.idbPut(IDB_NAME, IDB_STORE_NAME_DATA, myData, "myKey");
+                    console.log(`[${PLUGIN_NAME}] Data saved with key: "myKey"`);
+
+                } catch (err) {
+                    console.error(`[${PLUGIN_NAME}] Failed to save data to IDB:`, err);
+                }
+            };
+            // saveLog(); // 実行
+
+            // --- データの読み込み (async/await) ---
+            const loadData = async () => {
+                try {
+                    // 'data' ストアからキー指定で取得
+                    const myData = await self.idbGet(IDB_NAME, IDB_STORE_NAME_DATA, "myKey");
+                    console.log(`[${PLUGIN_NAME}] Loaded data for "myKey":`, myData);
+
+                    // 'logs' ストアから全件取得
+                    const allLogs = await self.idbGetAll(IDB_NAME, IDB_STORE_NAME_LOGS);
+                    console.log(`[${PLUGIN_NAME}] All logs:`, allLogs);
+
+                    // (不要になったら削除)
+                    // await self.idbDelete(IDB_NAME, IDB_STORE_NAME_DATA, "myKey");
+                    // (ストアを空にする)
+                    // await self.idbClear(IDB_NAME, IDB_STORE_NAME_LOGS);
+
+                } catch (err) {
+                    console.error(`[${PLUGIN_NAME}] Failed to load data from IDB:`, err);
+                }
+            };
+            // loadData(); // 実行
+            */
 
       // (Web workerを用いる場合の初期化例)
       /*
