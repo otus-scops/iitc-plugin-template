@@ -12,12 +12,22 @@
 // @match          https://*.ingress.com/*
 // @match          http://*.ingress.com/*
 // @grant          none
+// @license        MIT
 // ==/UserScript==
 
 /**
- * Copyright 2025 [Author]
+ * このテンプレート自体は MIT License です。
+ * (This template itself is licensed under MIT License.)
+ * Copyright (c) 2025 otus-scops
  *
- * Licensed under xxx
+ * ---
+ *
+ * (利用者は、このセクションに自身の著作権表示とライセンスを追加してください)
+ * (Users should add their own copyright notice and license in this section)
+ *
+ * 例 (Example):
+ * Copyright (c) 2025 [Your Name]
+ * Licensed under [Your Chosen License, e.g., MIT, GPLv3]
  */
 
 (function () {
@@ -29,20 +39,61 @@
       window.plugin = function () {};
     }
 
-    plugin_info.buildName = "iitc-ja-[Author]"; // Name of the IITC build for first-party plugins
+    // === プラグイン定義 ===
+    // プレースホルダー: 開発者はこのセクションの値を書き換えてください
+    const PLUGIN_AUTHOR = "[Author]"; // @id の @ 以降と合わせる
+    const PLUGIN_NAME = "[myPluginName]"; // 内部的なプラグイン名 (window.plugin[PLUGIN_NAME])
+    const PLUGIN_ID = "[myPluginId]"; // @id と合わせる必要はない
+    const PLUGIN_TITLE = "[myPluginName]"; // 設定ダイアログのタイトルやツールボックスの表示名
+
+    /* --- ストレージの使い分け ---
+     * 1. localStorage (当テンプレートで使用): 永続的な「設定」の保存に最適。
+     * 2. sessionStorage: ブラウザタブを閉じたら消えて良い「一時的な状態」の保存に。
+     * 3. IndexedDB: ポータルデータやログなど、「大量の構造化データ」を保存する場合に検討。
+     */
+    const STORAGE_KEY = `${PLUGIN_NAME}-option`; // localStorageのキー
+
+    // === デフォルト設定 ===
+    // (設定項目に合わせてIDとデフォルト値を変更してください)
+    const ID_TEXT_INPUT = `${PLUGIN_NAME}-text-input`;
+    const ID_CHECKBOX = `${PLUGIN_NAME}-checkbox`;
+
+    // デフォルト設定
+    const DEFAULT_OPTIONS = {
+      [ID_TEXT_INPUT]: "default text",
+      [ID_CHECKBOX]: false,
+    };
+    // ======================
+
+    // === CSSスタイル ===
+    // (プラグインが使用するCSSをここに定義します)
+    const CSS_STYLE = `
+/* CSS */
+/* override (必要に応じて) */
+@media (min-width: 1000px) {
+    .ui-dialog.${PLUGIN_NAME}-Options {
+        /* max-width: 900px; */
+    }
+}
+
+/* plugin specific */
+.${PLUGIN_NAME}-export-button {
+    margin-right: 10px; /* Exportボタンの右側にマージン */
+}
+    `;
+    // =================
+
+    plugin_info.buildName = `iitc-ja-${PLUGIN_AUTHOR}`; // Name of the IITC build for first-party plugins
     plugin_info.dateTimeVersion = "YYYYMMDDHHmmss"; // Datetime-derived version of the plugin
-    plugin_info.pluginId = "[myPluginId]"; // ID/name of the plugin
+    plugin_info.pluginId = PLUGIN_ID; // ID/name of the plugin
 
     // PLUGIN START ////////////////////////////////////////////////////////
 
-    // プラグイン自身の名前空間（[myPluginName] は実際のプラグイン名に置き換えてください）
-    if (typeof window.plugin[myPluginName] === "undefined") {
-      window.plugin[myPluginName] = {};
+    // プラグイン自身の名前空間
+    if (typeof window.plugin[PLUGIN_NAME] === "undefined") {
+      window.plugin[PLUGIN_NAME] = {};
     }
-    const self = window.plugin[myPluginName];
-
-    /* プラグイン内でグローバルに用いる定数や変数の定義 */
-    const STORAGE_KEY = "[myPluginName]-option";
+    const self = window.plugin[PLUGIN_NAME];
 
     // --- グローバル変数（プラグインスコープ） ---
     // 例: let myGlobalVariable = null;
@@ -54,11 +105,6 @@
     // 例: let objWorker = null;
 
     // --- 設定値の保持用 ---
-    // デフォルト設定（[textInputId] や [checkboxId] は設定項目に合わせて変更してください）
-    const DEFAULT_OPTIONS = {
-      [textInputId]: "default text",
-      [checkboxId]: false,
-    };
     // 現在の設定値（起動時に loadOption で読み込まれます）
     let OptionData = { ...DEFAULT_OPTIONS };
 
@@ -76,15 +122,18 @@
 
     /**
      * 初期処理（プラグイン起動時や設定変更時に呼ばれる）
+     * 設定値 (OptionData) に基づいて、レイヤーの再描画などを行います。
+     * @returns {void}
      */
     self.init = function () {
       // 例: 設定値に基づいて何かを再描画する
-      console.log("[myPluginName] init called. Options:", OptionData);
+      console.log(`[${PLUGIN_NAME}] init called. Options:`, OptionData);
       // window.map.fire('mapdataanchorchanged'); // 必要ならマップの再描画をトリガー
     };
 
     /**
-     * 設定の読み込み (localStorageから)
+     * 設定をlocalStorageから読み込み、OptionDataに格納します。
+     * @returns {void}
      */
     self.loadOption = function () {
       try {
@@ -98,29 +147,30 @@
           OptionData = { ...DEFAULT_OPTIONS };
         }
       } catch (e) {
-        console.error("[myPluginName] Failed to parse settings:", e);
+        console.error(`[${PLUGIN_NAME}] Failed to parse settings:`, e);
         // パース失敗時はデフォルト値に戻す
         OptionData = { ...DEFAULT_OPTIONS };
       }
     };
 
     /**
-     * 設定の保存 (localStorageへ)
+     * 現在のOptionDataをlocalStorageに保存します。
+     * @returns {void}
      */
     self.saveOption = function () {
       try {
         const stream = JSON.stringify(OptionData);
         localStorage.setItem(STORAGE_KEY, stream);
       } catch (e) {
-        console.error("[myPluginName] Failed to save settings:", e);
+        console.error(`[${PLUGIN_NAME}] Failed to save settings:`, e);
       }
     };
 
     /**
-     * 設定のエクスポート
+     * 現在のlocalStorageに保存されている設定を .json ファイルとしてエクスポートします。
+     * @returns {void}
      */
     self.exportOption = function () {
-      // 現在のlocalStorageに保存されているデータをエクスポート
       const stream = localStorage.getItem(STORAGE_KEY);
       if (stream === null) {
         alert("保存されている設定データがありません。");
@@ -135,13 +185,14 @@
         a.click();
         URL.revokeObjectURL(url);
       } catch (e) {
-        console.error("[myPluginName] Export failed:", e);
+        console.error(`[${PLUGIN_NAME}] Export failed:`, e);
       }
     };
 
     /**
-     * 設定のインポート
-     * @param {File} file - インポートする .json ファイル
+     * .json ファイルから設定をインポートし、localStorageに保存・適用します。
+     * @param {File} file - インポートする .json ファイル (Input要素から取得)
+     * @returns {void}
      */
     self.importOption = function (file) {
       if (!file || !file.name.endsWith(".json")) {
@@ -161,7 +212,7 @@
           self.init(); // 設定を反映する
           alert("設定をインポートしました。");
         } catch (e) {
-          console.error("[myPluginName] Failed to parse imported settings:", e);
+          console.error(`[${PLUGIN_NAME}] Failed to parse imported settings:`, e);
           alert("設定ファイルの読み込みに失敗しました。");
         }
       };
@@ -169,10 +220,10 @@
     };
 
     /**
-     * 設定ダイアログの表示
+     * 設定ダイアログを表示します。
+     * @returns {void}
      */
     self.settingDialog = function () {
-      // [textInputId] や [checkboxId] は実際のIDに置き換えてください
       const html = `
                 <div>
                     <p>設定をインポートまたはエクスポートできます。</p>
@@ -181,32 +232,32 @@
                 <table>
                     <tr>
                         <th>テキスト入力：</th>
-                        <td><input type="text" id="[textInputId]" size="26"></td>
+                        <td><input type="text" id="${ID_TEXT_INPUT}" size="26"></td>
                     </tr>
                     <tr>
                         <th>チェックボックス：</th>
-                        <td><input type="checkbox" id="[checkboxId]"><label for="[checkboxId]">チェック</label></td>
+                        <td><input type="checkbox" id="${ID_CHECKBOX}"><label for="${ID_CHECKBOX}">チェック</label></td>
                     </tr>
                 </table>
             `;
 
       dialog({
         html: html,
-        id: "[myPluginName]-Options",
-        title: "[myPluginName] 設定",
+        id: `${PLUGIN_NAME}-Options`,
+        title: `${PLUGIN_TITLE} 設定`,
         width: 500,
         modal: true, // ダイアログ以外を操作不可にする
         focusCallback: function () {
           // ダイアログ表示時に現在の設定値をフォームに反映
-          document.getElementById("[textInputId]").value =
-            OptionData["[textInputId]"] || "";
-          document.getElementById("[checkboxId]").checked =
-            OptionData["[checkboxId]"] || false;
+          document.getElementById(ID_TEXT_INPUT).value =
+            OptionData[ID_TEXT_INPUT] || "";
+          document.getElementById(ID_CHECKBOX).checked =
+            OptionData[ID_CHECKBOX] || false;
         },
         buttons: [
           {
             text: "Import",
-            class: "[myPluginName]-import-button",
+            class: `${PLUGIN_NAME}-import-button`,
             click: function () {
               const input = document.createElement("input");
               input.type = "file";
@@ -223,7 +274,7 @@
           },
           {
             text: "Export",
-            class: "[myPluginName]-export-button",
+            class: `${PLUGIN_NAME}-export-button`,
             click: function () {
               self.exportOption();
               // エクスポートはダイアログを閉じない
@@ -231,13 +282,13 @@
           },
           {
             text: "OK",
-            class: "[myPluginName]-ok-button",
+            class: `${PLUGIN_NAME}-ok-button`,
             click: function () {
               // フォームから値を取得してOptionDataに保存
-              OptionData["[textInputId]"] =
-                document.getElementById("[textInputId]").value;
-              OptionData["[checkboxId]"] =
-                document.getElementById("[checkboxId]").checked;
+              OptionData[ID_TEXT_INPUT] =
+                document.getElementById(ID_TEXT_INPUT).value;
+              OptionData[ID_CHECKBOX] =
+                document.getElementById(ID_CHECKBOX).checked;
 
               self.saveOption(); // localStorageに保存
               self.init(); // 設定を反映
@@ -247,7 +298,7 @@
           },
           {
             text: "Cancel",
-            class: "[myPluginName]-cancel-button",
+            class: `${PLUGIN_NAME}-cancel-button`,
             click: function () {
               $(this).dialog("close");
             },
@@ -263,7 +314,7 @@
                 const b = new Blob([myWorker], { type: "text/javascript" });
                 return new Worker(window.URL.createObjectURL(b));
             } catch (e) {
-                console.error('[myPluginName] Failed to setup worker:', e);
+                console.error(`[${PLUGIN_NAME}] Failed to setup worker:`, e);
                 return null;
             }
         }
@@ -279,7 +330,45 @@
         */
 
     /**
+     * プラグインが追加した要素やフックを破棄します。
+     * (注: 現状のIITCではこの関数は自動的には呼ばれませんが、
+     * デバッグコンソールから手動実行 (window.plugin.[PLUGIN_NAME].cleanup()) することで、
+     * リロードせずにプラグインを無効化するのに役立ちます)
+     * @returns {void}
+     */
+    self.cleanup = function () {
+      console.log(`[${PLUGIN_NAME}] cleaning up...`);
+
+      // 1. ツールボックスからリンクを削除
+      $(`#toolbox a[onclick="window.plugin.${PLUGIN_NAME}.settingDialog();"]`).remove();
+
+      // 2. CSSの削除
+      $(`#${PLUGIN_NAME}-style`).remove();
+
+      // 3. カスタムレイヤーの削除
+      // if (self.myLayerGroup) {
+      //   window.removeLayerGroup(self.myLayerGroup);
+      //   self.myLayerGroup = null;
+      // }
+
+      // 4. フックの解除
+      // (例: window.removeHook('publicChatDataAvailable', self.listenerFunction);)
+
+      // 5. Workerの終了
+      // if (objWorker) {
+      //   objWorker.terminate();
+      //   objWorker = null;
+      // }
+
+      // 6. プラグイン名前空間のクリーンアップ（推奨されませんが、最終手段として）
+      // delete window.plugin[PLUGIN_NAME];
+
+      console.log(`[${PLUGIN_NAME}] cleanup complete.`);
+    };
+
+    /**
      * プラグインのメインエントリーポイント (IITC起動時に1回だけ呼ばれる)
+     * @returns {void}
      */
     self.start = function () {
       // 1. 設定値の読み込み
@@ -303,43 +392,18 @@
       /*
             self.myLayerGroup = new L.FeatureGroup();
             window.addLayerGroup('[レイヤー名]', self.myLayerGroup, true);
-            // self.myLayerGroup.bringToBack(); // レイヤーを最背面に移動
-
-            // レイヤーへのアイコン追加例 (Leaflet)
-            // https://leafletjs.com/reference.html
-            const myIcon = L.divIcon({
-                className: "myMarkerClass",
-                html:'<div class="myMarkerClass"></div>',
-                iconSize: [10, 10]
-            });
-            const myMarker = L.marker([lat, lng], { icon: myIcon });
-            myMarker.addTo(self.myLayerGroup);
             */
 
       // 2. ツールボックスへの項目追加
-      // (例：設定ボタン)
       $("#toolbox").append(
-        ' <a onclick="window.plugin.[myPluginName].settingDialog();" title="[myPluginName] の設定を開きます">[myPluginName] 設定</a>',
+        ` <a onclick="window.plugin.${PLUGIN_NAME}.settingDialog();" title="${PLUGIN_TITLE} の設定を開きます">${PLUGIN_TITLE} 設定</a>`,
       );
 
       // 3. CSSの適用
-      const cssData = `
-/* CSS */
-/* override (必要に応じて) */
-@media (min-width: 1000px) {
-    .ui-dialog.[myPluginName]-Options {
-        /* max-width: 900px; */
-    }
-}
-
-/* plugin specific */
-.[myPluginName]-export-button {
-    margin-right: 10px; /* Exportボタンの右側にマージン */
-}
-            `;
       const styleTag = document.createElement("style");
       styleTag.setAttribute("type", "text/css");
-      styleTag.innerHTML = cssData; // innerTextよりinnerHTMLの方が一般的
+      styleTag.id = `${PLUGIN_NAME}-style`; // クリーンアップ用にIDを付与
+      styleTag.innerHTML = CSS_STYLE; // innerTextよりinnerHTMLの方が一般的
       document.getElementsByTagName("head")[0].appendChild(styleTag);
 
       // 4. 初期処理の実行
