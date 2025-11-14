@@ -1,5 +1,5 @@
 # IITCプラグイン テンプレート (iitc-plugin-template)
-これは、[Ingress Intel Total Conversion (IITC)](https://iitc.app/) のカスタムプラグインを開発するための、高機能なテンプレートです。
+これは、[Ingress Intel Total Conversion (IITC)](https://iitc.app/) のカスタムプラグインを開発するためのテンプレートです。
 
 テンプレート自体は、外部ライブラリに依存せず、グローバル空間を汚染しないような実装を目指しています。
 
