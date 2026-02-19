@@ -88,4 +88,4 @@
 .user.js ファイル内の /\*\* Copyright 2025 \[Author] ... \*/ で始まるコメントブロック全体を、あなた自身が選択した著作権表示とライセンス（例: Copyright 2025 MyName. Licensed under MIT. など）に書き換えてください。
 
 ## テンプレートのライセンス
-この iitc-plugin-template 自体は、以下の MIT License の下で公開されています。これにより、あなたはこのテンプレートを自由に改変、再配布、商用利用することができます。
+この iitc-plugin-template 自体は、MIT License の下で公開されています。これにより、あなたはこのテンプレートを自由に改変、再配布、商用利用することができます。
