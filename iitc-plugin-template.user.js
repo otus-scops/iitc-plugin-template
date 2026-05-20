@@ -37,7 +37,7 @@
   const wrapper = function (plugin_info) {
     // ensure plugin framework is there, even if iitc is not yet loaded
     if (typeof window.plugin !== "function") {
-      window.plugin = function () {};
+      window.plugin = function () { };
     }
 
     // === プラグイン定義 ===
@@ -170,8 +170,8 @@
     color: #002244;
 }
 
-/* (New) ボタンの表示/非表示を制御 (ラッパー) */
-.${PLUGIN_NAME}-toolbox-button-wrapper,
+/* (New) ボタンの表示/非表示を制御 */
+.${PLUGIN_NAME}-toolbox-button,
 .${PLUGIN_NAME}-sidebar-button-wrapper {
     display: none; /* initで切り替えるまで非表示 */
 }
@@ -227,7 +227,7 @@
       // CSSの display を切り替える
       if (OptionData[ID_SHOW_IN_SIDEBAR]) {
         // サイドバーボタンを表示
-        $(`.${PLUGIN_NAME}-toolbox-button-wrapper`).css("display", "none");
+        $(`.${PLUGIN_NAME}-toolbox-button`).css("display", "none");
         $(`.${PLUGIN_NAME}-sidebar-button-wrapper`).css("display", "block");
         // もし 'info' ペインが表示中なら、ボタンがまだなければ追加する
         if (window.selected_pane === "info") {
@@ -235,7 +235,7 @@
         }
       } else {
         // ツールボックスボタンを表示
-        $(`.${PLUGIN_NAME}-toolbox-button-wrapper`).css("display", "inline"); // spanなのでinline
+        $(`.${PLUGIN_NAME}-toolbox-button`).css("display", "inline");
         $(`.${PLUGIN_NAME}-sidebar-button-wrapper`).css("display", "none");
       }
 
@@ -720,7 +720,7 @@
       console.log(`[${PLUGIN_NAME}] cleaning up...`);
 
       // 1. ツールボックスからリンクを削除
-      $(`.${PLUGIN_NAME}-toolbox-button-wrapper`).remove();
+      $(`.${PLUGIN_NAME}-toolbox-button`).remove();
 
       // 1b. (New) サイドバーからリンクを削除
       $(`.${PLUGIN_NAME}-sidebar-button-wrapper`).remove();
@@ -810,6 +810,9 @@
 
       // (カスタムレイヤーの追加例)
       /*
+            // =====================================================
+            // パターン A: L.FeatureGroup (DOM ベース、少量マーカー向け)
+            // =====================================================
             self.myLayerGroup = new L.FeatureGroup();
             window.addLayerGroup('[レイヤー名]', self.myLayerGroup, true);
             // self.myLayerGroup.bringToBack(); // レイヤーを最背面に移動
@@ -836,11 +839,405 @@
             // L.marker([lat, lng], { icon: myBase64Icon }).addTo(self.myLayerGroup);
             */
 
-      // 2. ツールボックスへの項目追加 (ラッパーで囲む)
+      // =====================================================
+      // パターン B: L.circleMarker + Canvas レンダラー
+      //             (単純な図形、高パフォーマンス)
+      // =====================================================
+      //
+      // Leaflet 標準の Canvas レンダラーで円形マーカーを描画します。
+      // SVG Data URI 変換が不要で、最もレンダリング負荷が低い方式です。
+      //
+      // 【メリット】
+      //   - 外部プラグイン不要 (Leaflet 標準機能)
+      //   - SVG パース / Data URI 変換のオーバーヘッドなし
+      //   - setStyle() でスタイルを直接変更可能
+      //   - 数百〜数千個の円形マーカーに最適
+      //
+      // 【パターン C (CanvasIconLayer) との使い分け】
+      //   - 円形・ドットだけならパターン B で十分
+      //   - テキストラベルやカスタム画像が必要ならパターン C を使用
+      //
+      /*
+            // 共有 Canvas レンダラー (同一 Canvas 上に描画、DOM ノード増加なし)
+            self.canvasRenderer = L.canvas({ padding: 0.5 });
+
+            // レイヤーグループの作成
+            self.circleLayerGroup = new L.FeatureGroup();
+            window.addLayerGroup('[レイヤー名]', self.circleLayerGroup, true);
+
+            // --- 基本的な円形マーカー ---
+            const marker1 = L.circleMarker([35.681, 139.767], {
+                renderer: self.canvasRenderer,
+                radius: 5,
+                color: '#ffffff',      // 枠線色
+                weight: 1,             // 枠線幅
+                fillColor: '#ff0000',  // 塗りつぶし色
+                fillOpacity: 1,
+                interactive: true
+            });
+            marker1.bindTooltip('ポータル名');
+            marker1.addTo(self.circleLayerGroup);
+
+            // --- 大量マーカーの一括追加 ---
+            portalData.forEach(portal => {
+                L.circleMarker([portal.lat, portal.lng], {
+                    renderer: self.canvasRenderer,
+                    radius: 4,
+                    color: '#fff',
+                    weight: 1,
+                    fillColor: portal.team === 'E' ? '#28b62c' : '#0088ff',
+                    fillOpacity: 0.9,
+                    interactive: true
+                })
+                .bindTooltip(portal.name)
+                .addTo(self.circleLayerGroup);
+            });
+
+            // --- スタイルの動的変更 ---
+            marker1.setStyle({ fillColor: '#00ff00', radius: 8 });
+
+            // --- 全マーカーの削除 ---
+            self.circleLayerGroup.clearLayers();
+            */
+
+      // --- パターン B クリーンアップ例 ---
+      // (self.cleanup 内に追加)
+      /*
+            if (self.circleLayerGroup) {
+                self.circleLayerGroup.clearLayers();
+                window.removeLayerGroup(self.circleLayerGroup);
+                self.circleLayerGroup = null;
+            }
+            */
+
+      // =====================================================
+      // パターン C: CanvasIconLayer (テキスト・画像アイコン向け)
+      // =====================================================
+      //
+      // IITC 標準の L.canvasIconLayer を利用するパターンです。
+      // テキストラベルやカスタム画像など、L.circleMarker では
+      // 表現できないアイコンを大量描画する場合に使用します。
+      //
+      // 【旧方式 (SVG Data URI) との違い】
+      //   旧: SVG文字列 → encodeURIComponent → Data URI → ブラウザがSVGパース
+      //   新: Canvas 2D API で直接描画 → toDataURL() で画像化
+      //   → SVG パースが不要で高速。テキスト描画のブラウザ間差異も少ない。
+      //
+      // 【参照】
+      //   https://github.com/IITC-CE/ingress-intel-total-conversion/blob/master/core/external/leaflet.canvas-markers.js
+      //
+
+      // --- CanvasIconLayer 用ヘルパー関数 (Canvas 2D API ベース) ---
+
+      /**
+       * テキスト幅を Canvas.measureText で正確に計測します。
+       * 計測用コンテキストはキャッシュして再利用します。
+       * @param {string} text - 計測するテキスト
+       * @param {string} [font='bold 12px monospace'] - CSS font 指定文字列
+       * @returns {number} テキスト幅 (px)
+       */
+      /*
+            self.measureTextWidth = function (text, font = 'bold 12px monospace') {
+                if (!self._measureCtx) {
+                    self._measureCtx = document.createElement('canvas').getContext('2d');
+                }
+                self._measureCtx.font = font;
+                return self._measureCtx.measureText(text).width;
+            };
+            */
+
+      /**
+       * 角丸矩形を Canvas コンテキストに描画します (内部ヘルパー)。
+       * @param {CanvasRenderingContext2D} ctx - 描画コンテキスト
+       * @param {number} x - X座標
+       * @param {number} y - Y座標
+       * @param {number} w - 幅
+       * @param {number} h - 高さ
+       * @param {number} r - 角丸半径
+       * @param {string} fillColor - 塗りつぶし色
+       * @param {string} [strokeColor=''] - 枠線色 (空文字で枠線なし)
+       * @param {number} [strokeWidth=1] - 枠線幅
+       */
+      /*
+            self._drawRoundRect = function (ctx, x, y, w, h, r, fillColor, strokeColor, strokeWidth) {
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(x, y, w, h, r);
+                } else {
+                    // roundRect 未対応ブラウザ用フォールバック
+                    ctx.moveTo(x + r, y);
+                    ctx.lineTo(x + w - r, y);
+                    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                    ctx.lineTo(x + w, y + h - r);
+                    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                    ctx.lineTo(x + r, y + h);
+                    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                    ctx.lineTo(x, y + r);
+                    ctx.quadraticCurveTo(x, y, x + r, y);
+                    ctx.closePath();
+                }
+                ctx.fillStyle = fillColor;
+                ctx.fill();
+                if (strokeColor) {
+                    ctx.strokeStyle = strokeColor;
+                    ctx.lineWidth = strokeWidth || 1;
+                    ctx.stroke();
+                }
+            };
+            */
+
+      /**
+       * テキストラベルアイコンを Canvas 2D API で生成します。
+       * SVG パースが不要なため、旧 getTextIconUri より高速です。
+       * 同一パラメータのアイコンはキャッシュから返します。
+       * @param {string} text - 表示するテキスト
+       * @param {Object} [options] - オプション
+       * @param {number} [options.fontSize=12] - フォントサイズ (px)
+       * @param {string} [options.fontFamily='monospace'] - フォントファミリー
+       * @param {string} [options.fontWeight='bold'] - フォントウェイト
+       * @param {string} [options.textColor='#ffffff'] - テキスト色
+       * @param {string} [options.bgColor='rgba(0,0,0,0.7)'] - 背景色
+       * @param {number} [options.padding=4] - パディング (px)
+       * @param {number} [options.borderRadius=3] - 角丸半径 (px)
+       * @param {string} [options.borderColor=''] - 枠線色 (空文字で枠線なし)
+       * @param {number} [options.borderWidth=1] - 枠線幅 (px)
+       * @returns {{ url: string, width: number, height: number }} Data URL とサイズ情報
+       */
+      /*
+            self._iconCache = self._iconCache || new Map();
+
+            self.createTextIcon = function (text, options = {}) {
+                const key = 'T:' + text + JSON.stringify(options);
+                if (self._iconCache.has(key)) return self._iconCache.get(key);
+
+                const fontSize = options.fontSize || 12;
+                const fontFamily = options.fontFamily || 'monospace';
+                const fontWeight = options.fontWeight || 'bold';
+                const textColor = options.textColor || '#ffffff';
+                const bgColor = options.bgColor || 'rgba(0,0,0,0.7)';
+                const padding = options.padding || 4;
+                const borderRadius = options.borderRadius || 3;
+                const borderColor = options.borderColor || '';
+                const borderWidth = options.borderWidth || 1;
+
+                const font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+                const textWidth = self.measureTextWidth(text, font);
+                const width = Math.ceil(textWidth + padding * 2);
+                const height = Math.ceil(fontSize + padding * 2);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+
+                // 背景 (角丸矩形)
+                self._drawRoundRect(ctx, 0, 0, width, height, borderRadius, bgColor, borderColor, borderWidth);
+
+                // テキスト
+                ctx.font = font;
+                ctx.fillStyle = textColor;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(text, width / 2, height / 2);
+
+                const result = { url: canvas.toDataURL(), width, height };
+                self._iconCache.set(key, result);
+                return result;
+            };
+            */
+
+      /**
+       * テキスト付き円形アイコンを Canvas 2D API で生成します。
+       * クラスターカウンターなど、円の中にテキストを配置する用途に最適です。
+       * 同一パラメータのアイコンはキャッシュから返します。
+       * @param {string} text - 表示するテキスト
+       * @param {Object} [options] - オプション
+       * @param {number} [options.size=24] - アイコンサイズ (px)
+       * @param {string} [options.fill='#4285f4'] - 円の塗りつぶし色
+       * @param {string} [options.stroke='#ffffff'] - 円の枠線色
+       * @param {number} [options.strokeWidth=2] - 円の枠線幅
+       * @param {string} [options.textColor='#ffffff'] - テキスト色
+       * @param {number} [options.fontSize=12] - フォントサイズ
+       * @returns {{ url: string, size: number }} Data URL とサイズ情報
+       */
+      /*
+            self.createCircleTextIcon = function (text, options = {}) {
+                const key = 'CT:' + text + JSON.stringify(options);
+                if (self._iconCache.has(key)) return self._iconCache.get(key);
+
+                const size = options.size || 24;
+                const fill = options.fill || '#4285f4';
+                const stroke = options.stroke || '#ffffff';
+                const strokeWidth = options.strokeWidth || 2;
+                const textColor = options.textColor || '#ffffff';
+                const fontSize = options.fontSize || 12;
+
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                const cx = size / 2;
+                const cy = size / 2;
+                const r = cx - strokeWidth;
+
+                // 円
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fillStyle = fill;
+                ctx.fill();
+                if (strokeWidth > 0) {
+                    ctx.strokeStyle = stroke;
+                    ctx.lineWidth = strokeWidth;
+                    ctx.stroke();
+                }
+
+                // テキスト
+                ctx.font = `bold ${fontSize}px sans-serif`;
+                ctx.fillStyle = textColor;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(text, cx, cy);
+
+                const result = { url: canvas.toDataURL(), size };
+                self._iconCache.set(key, result);
+                return result;
+            };
+            */
+
+      /**
+       * アイコンキャッシュをクリアします。
+       * マーカーのスタイルが一括変更された場合などに呼び出します。
+       */
+      /*
+            self.clearIconCache = function () {
+                if (self._iconCache) self._iconCache.clear();
+            };
+            */
+
+      // --- CanvasIconLayer セットアップ例 ---
+      /*
+            // レイヤーの作成
+            self.canvasLayer = L.canvasIconLayer({});
+
+            // IITC のレイヤーコントロールに登録
+            window.addLayerGroup('[レイヤー名]', self.canvasLayer, true);
+
+            // --- マーカーの追加方法 ---
+
+            // 1. テキストラベルマーカーを追加
+            const textIcon = self.createTextIcon('残り 5:00', {
+                fontSize: 11,
+                textColor: '#ffffff',
+                bgColor: 'rgba(0, 100, 200, 0.8)',
+                borderColor: '#ffffff',
+                padding: 3
+            });
+            const marker1 = L.marker([35.682, 139.768], {
+                icon: L.icon({
+                    iconUrl: textIcon.url,
+                    iconSize: [textIcon.width, textIcon.height],
+                    iconAnchor: [textIcon.width / 2, textIcon.height / 2]
+                }),
+                interactive: true
+            });
+            self.canvasLayer.addMarker(marker1);
+
+            // 2. 複合アイコン（円＋テキスト）マーカーを追加
+            const clusterIcon = self.createCircleTextIcon('42', {
+                size: 30, fill: '#e91e63', fontSize: 14
+            });
+            const marker2 = L.marker([35.683, 139.769], {
+                icon: L.icon({
+                    iconUrl: clusterIcon.url,
+                    iconSize: [clusterIcon.size, clusterIcon.size],
+                    iconAnchor: [clusterIcon.size / 2, clusterIcon.size / 2]
+                }),
+                interactive: true
+            });
+            self.canvasLayer.addMarker(marker2);
+
+            // --- 一括操作 (大量マーカー向け、高パフォーマンス) ---
+
+            // 3. グループIDを使った一括追加
+            //    addMarkers() は内部で rBush の bulk load を使うため、
+            //    addMarker() を個別に呼ぶより大幅に高速です。
+            //
+            //    注: 単純な円形マーカーの大量描画には、CanvasIconLayer ではなく
+            //    パターン B (L.circleMarker + Canvas レンダラー) の方が軽量です。
+            const markersToAdd = [];
+            portalData.forEach(portal => {
+                const icon = self.createCircleTextIcon(portal.code, {
+                    size: 20, fill: portal.team === 'E' ? '#28b62c' : '#0088ff',
+                    fontSize: 10
+                });
+                const m = L.marker([portal.lat, portal.lng], {
+                    icon: L.icon({
+                        iconUrl: icon.url,
+                        iconSize: [icon.size, icon.size],
+                        iconAnchor: [icon.size / 2, icon.size / 2]
+                    }),
+                    interactive: true
+                });
+                m.bindTooltip(portal.name);
+                markersToAdd.push(m);
+            });
+            self.canvasLayer.addMarkers(markersToAdd, 'portalGroup');
+
+            // 4. グループ単位での削除
+            //    個別 removeMarker() よりも効率的です。
+            self.canvasLayer.removeGroup('portalGroup');
+
+            // 5. 全マーカーの削除
+            self.canvasLayer.clearLayers();
+
+            // --- マーカーの更新（アイコン変更） ---
+
+            // 6. 既存マーカーのアイコンを動的に変更する場合
+            //    CanvasIconLayer にはアイコン更新APIがないため、
+            //    remove → add で差し替えます。
+            //    (注: canvas_img のキャッシュもクリアが必要)
+            function updateMarkerIcon(layer, marker, newIconUrl, iconSize, iconAnchor) {
+                layer.removeMarker(marker, false);
+                marker.canvas_img = null; // 画像キャッシュをクリア
+                marker.setIcon(L.icon({
+                    iconUrl: newIconUrl,
+                    iconSize: iconSize,
+                    iconAnchor: iconAnchor
+                }));
+                layer.addMarker(marker);
+            }
+
+            // --- イベント処理 ---
+
+            // 7. クリックイベント
+            self.canvasLayer.on('click', function (e) {
+                // e.layer にクリックされたマーカーが入る
+                if (e.layer) {
+                    const latlng = e.layer.getLatLng();
+                    console.log(`[${PLUGIN_NAME}] Marker clicked:`, latlng);
+                }
+            });
+            */
+
+      // --- CanvasIconLayer クリーンアップ例 ---
+      // (self.cleanup 内に追加)
+      /*
+            if (self.canvasLayer) {
+                self.canvasLayer.clearLayers();
+                window.removeLayerGroup(self.canvasLayer);
+                self.canvasLayer = null;
+            }
+            // アイコンキャッシュの破棄
+            self.clearIconCache();
+            // テキスト計測用コンテキストの破棄
+            if (self._measureCtx) {
+                self._measureCtx = null;
+            }
+            */
+
+      // 2. ツールボックスへの項目追加
       $("#toolbox").append(
-        `<span class="${PLUGIN_NAME}-toolbox-button-wrapper">
-            <a onclick="window.plugin.${PLUGIN_NAME}.settingDialog();" title="${PLUGIN_TITLE} の設定を開きます">${PLUGIN_TITLE} 設定</a>
-        </span>`,
+        `<a class="${PLUGIN_NAME}-toolbox-button" onclick="window.plugin.${PLUGIN_NAME}.settingDialog();" title="${PLUGIN_TITLE} の設定を開きます">${PLUGIN_TITLE} 設定</a>`,
       );
 
       // 2b. (New) サイドバーへの項目追加 (フック)
